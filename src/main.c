@@ -361,6 +361,174 @@ int	check_textures_and_color(char **map_str, t_config *config)
     return (0);
 }
 
+
+char *skip_lines(char **str)
+{
+    while (**str && **str == '\n')
+        (*str)++;
+    return (*str);
+}
+int	find_consecutive_newlines(const char *str)
+{
+	int	i;
+
+	i = 0;
+	while (str[i])
+	{
+		if (str[i] == '\n' && str[i + 1] == '\n')
+		{
+			while(str[i] && str[i] == '\n')
+					i++;
+		
+			if(str[i] == '1' || str[i] == '0' || str[i] == ' ')
+				return 1;
+			return (0);
+		}
+		str++;
+	}
+	return (0);
+}
+
+int find_tall_line(char **str)
+{
+    int i;
+    int len;
+    int max_len;
+
+    i = 0;
+    max_len = 0;
+    while (str[i])
+    {
+        len = ft_strlen(str[i]);
+        if (len > max_len)
+            max_len = len;
+        i++;
+    }
+    return (max_len);
+}
+
+char *ft_strndup(char *s1, int size)
+{
+    char *dup;
+    int i;
+    int j;
+    int len;
+
+    if (!s1)
+        return (NULL);
+    len = ft_strlen(s1);
+    dup = malloc(sizeof(char) * (len + size + 1));
+    if (!dup)
+        return (NULL);
+    for (i = 0; i < len; i++)
+        dup[i] = s1[i];
+    for (j = 0; j < size; j++)
+        dup[i + j] = '1';
+    dup[i + size] = '\0';
+    return (dup);
+}
+
+char	**resize_line(char **arr,int size, int height)
+{
+	int resize;
+	int i;
+	char **str;
+
+	
+    str = malloc(sizeof(char *) * (height + 1));
+    if (!str)
+        return NULL;
+i = 0;
+	while (arr[i])
+	{
+		resize = size - ft_strlen(arr[i]);
+		str[i] = ft_strndup(arr[i],resize);
+		if (!str[i])
+        {
+            while (i > 0)
+                free(str[--i]);
+            free(str);
+            return NULL;
+        }
+		i++;
+	}
+	str[i] = NULL;
+	return (str);
+}
+void free_array(char **arr)
+{	
+	int i;
+	i = 0;
+    while (arr[i])
+        free(arr[i++]);
+    free(arr);
+}
+
+int	check_map_walls(char **map, int width, int height)
+{
+	int	i;
+	int	j;
+
+	i = 0;
+	while (i < height)
+	{
+		if (!map[i] || ft_strlen(map[i]) != (size_t)width)
+		{
+			return (0);
+		}
+		i++;
+	}
+	j = 0;
+	while (j < width)
+	{
+		if (map[0][j] != '1' || map[height - 1][j] != '1')
+		{
+			printf("j : %d\n",j);	
+			return (0);
+		} 
+		j++;
+	}
+	i = 0;
+	while (i < height)
+	{
+		if (map[i][0] != '1' || map[i][width - 1] != '1')
+			return (0);
+		i++;
+	}
+	return (1);
+}
+
+int parse_map(char **map_cursor)
+{
+	char **arr;
+	int max_len;
+	char **map;
+	int height;
+
+	skip_lines(map_cursor);
+	if (find_consecutive_newlines(*map_cursor) == 1)
+		return (printf("too lines"), -1);
+	arr = ft_split(*map_cursor, '\n');
+	if (!arr)
+		return (-1);
+	height = 0;
+	while (arr[height])
+		height++;
+	max_len = find_tall_line(arr);
+	map = resize_line(arr,max_len, height); //new map
+	free_array(arr);
+	for (int i = 0; map[i]; i++)
+	{
+		printf("[%d] %s\n", i, map[i]);
+	}
+	if	(!check_map_walls(map,max_len,height))
+		return (printf("walllllllllllllllllls\n"), -1);
+	// printf("max : %d\n",max_len);
+	return (0);
+}
+
+
+
 /* -------------------- FILE PARSING -------------------- */
 
 int	parse_file(char *filename, t_config *config)
@@ -396,7 +564,13 @@ int	parse_file(char *filename, t_config *config)
 	if (check_textures_and_color(&map_cursor, config) == -1)
 		return (put_error("Invalid textures/colors"), free(all_map), 1);
 
+	if (parse_map(&map_cursor) == -1)
+		return (put_error("Invalid textures/colors"), free(all_map), 1);
+
 	// TODO: implement map parsing next
+	// printf("%s\n", map_cursor);
+	//skip->newdline;
+	// *line == '\n'
 	free(all_map);
 	return (0);
 }
