@@ -175,52 +175,76 @@ char	*get_path_textures(char **str)
 
 int	get_textures(char **str, t_config *config)
 {
-	skip_space(str);
-    char *line = *str;
-	if (!ft_strncmp(*str, "NO", 2))
-	{
-        line+=2;
-		config->no_tex = get_path_textures(&line);
-	}
-	else if (!ft_strncmp(*str, "SO", 2))
-	{
-		line += 2;
-		config->so_tex = get_path_textures(str);
-	}
-	else if (!ft_strncmp(*str, "EA", 2))
-	{
-		line+= 2;
-		config->ea_tex = get_path_textures(str);
-	}
-	else if (!ft_strncmp(*str, "WE", 2))
-	{
-		line += 2;
-		config->we_tex = get_path_textures(str);
-	}
-	else
-		return (-1);
-	return (0);
+    skip_space(str);
+    if (!ft_strncmp(*str, "NO", 2))
+    {
+        *str += 2;
+        config->no_tex = get_path_textures(str);
+    }
+    else if (!ft_strncmp(*str, "SO", 2))
+    {
+        *str += 2;
+        config->so_tex = get_path_textures(str);
+    }
+    else if (!ft_strncmp(*str, "EA", 2))
+    {
+        *str += 2;
+        config->ea_tex = get_path_textures(str);
+    }
+    else if (!ft_strncmp(*str, "WE", 2))
+    {
+        *str += 2;
+        config->we_tex = get_path_textures(str);
+    }
+    else
+        return (-1);
+    return (0);
 }
 
 /* -------------------- COLORS -------------------- */
 
-int	get_color(char **str, int color[3])
+static int	parse_component(char **str, int *value)
 {
-	int	i = 0;
+	int	component;
 
 	skip_space(str);
-	while (i < 3)
+	if (**str < '0' || **str > '9')
+		return (-1);
+	component = 0;
+	while (**str >= '0' && **str <= '9')
 	{
-		color[i] = ft_atoi(*str);
-		while (**str && (**str >= '0' && **str <= '9'))
-			(*str)++;
-		skip_space(str);
-		if (i < 2 && **str == ',')
-			(*str)++;
-		else if (i < 2 && **str != ',')
+		component = component * 10 + (**str - '0');
+		if (component > 255)
 			return (-1);
-		i++;
+		(*str)++;
 	}
+	if (**str && **str != ' ' && **str != '\t' && **str != ',' && **str != '\n')
+		return (-1);
+	*value = component;
+	return (0);
+}
+
+int	get_color(char **str, int color[3])
+{
+	int	index;
+
+	index = 0;
+	while (index < 3)
+	{
+		if (parse_component(str, &color[index]) == -1)
+			return (-1);
+		skip_space(str);
+		if (index < 2)
+		{
+			if (**str != ',')
+				return (-1);
+			(*str)++;
+		}
+		index++;
+	}
+	skip_space(str);
+	if (**str && **str != '\n')
+		return (-1);
 	return (0);
 }
 
@@ -289,33 +313,52 @@ char	*get_next_line_from_string(char **map_str)
 
 int	check_textures_and_color(char **map_str, t_config *config)
 {
-	char *line;
+    char *line;
+    char *original_line;
     int len = 0;
-	while ((line = get_next_line_from_string(map_str)))
-	{
+    
+    while ((line = get_next_line_from_string(map_str)))
+    {
+        original_line = line;
         if(len == 6)
-                break;
-	    skip_space(&line);
+        {
+            free(original_line);
+            break;
+        }
+        skip_space(&line);
         if(line[0] == '\n')
+        {
+            free(original_line);
             continue;
-		if (!*line)
-			continue;
-		if (!ft_strncmp(line, "NO", 2) || !ft_strncmp(line, "SO", 2)
-			|| !ft_strncmp(line, "WE", 2) || !ft_strncmp(line, "EA", 2))
-		{
-			if (get_textures(&line, config) == -1)
-				return (-1);
-		}
-		else if (*line == 'F' || *line == 'C')
-		{
-			if (get_colors(&line, config) == -1)
-				return (-1);
-		}
+        }
+        if (!*line)
+        {
+            free(original_line);
+            continue;
+        }
+        if (!ft_strncmp(line, "NO", 2) || !ft_strncmp(line, "SO", 2)
+            || !ft_strncmp(line, "WE", 2) || !ft_strncmp(line, "EA", 2))
+        {
+            if (get_textures(&line, config) == -1)
+            {
+                free(original_line);
+                return (-1);
+            }
+        }
+        else if (*line == 'F' || *line == 'C')
+        {
+            if (get_colors(&line, config) == -1)
+            {
+                free(original_line);
+                return (-1);
+            }
+        }
+        free(original_line);
         len++;
-	}
-	if (!config->no_tex || !config->so_tex || !config->we_tex || !config->ea_tex)
-		    return (-1);
-	return (0);
+    }
+    if (!config->no_tex || !config->so_tex || !config->we_tex || !config->ea_tex)
+            return (-1);
+    return (0);
 }
 
 /* -------------------- FILE PARSING -------------------- */
@@ -325,7 +368,8 @@ int	parse_file(char *filename, t_config *config)
 	int		fd;
 	char	*line;
 	char	*tmp;
-	char	*all_map = NULL;
+	char	*all_map;
+	char	*map_cursor;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -334,6 +378,7 @@ int	parse_file(char *filename, t_config *config)
 	config->map = NULL;
 	config->map_h = 0;
 	config->map_w = 0;
+	all_map = NULL;
 
 	while ((line = get_next_line(fd)))
 	{
@@ -347,7 +392,8 @@ int	parse_file(char *filename, t_config *config)
 	if (!all_map)
 		return (1);
 
-	if (check_textures_and_color(&all_map, config) == -1)
+	map_cursor = all_map;
+	if (check_textures_and_color(&map_cursor, config) == -1)
 		return (put_error("Invalid textures/colors"), free(all_map), 1);
 
 	// TODO: implement map parsing next
@@ -405,13 +451,16 @@ int	main(int ac, char **av)
 	init_config(&game.config);
 	if (parse_file(av[1], &game.config))
 		return (1);
+	if (game.config.floor[0] == -1 && game.config.floor[1] == -1 && game.config.floor[2] == -1)
+		return (put_error("Floor color not set"), 1);
+	if (game.config.ceil[0] == -1 && game.config.ceil[1] == -1 && game.config.ceil[2] == -1)
+		return (put_error("Ceiling color not set"), 1);
 	print_config(&game.config);
 
 	init_game(&game);
-	init_player(&game.player, &game.config);
+    init_player(&game.player, &game.config);
 	draw_background(&game);
 	raycast(&game, &game.player);
-
 	mlx_key_hook(game.win, handle_keypress, &game);
 	mlx_put_image_to_window(game.mlx, game.win, game.img, 0, 0);
 	mlx_loop(game.mlx);
