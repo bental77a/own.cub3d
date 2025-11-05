@@ -327,7 +327,7 @@ char *ft_strndup(char *s1, int size)
     for (i = 0; i < len; i++)
         dup[i] = s1[i];
     for (j = 0; j < size; j++)
-        dup[i + j] = '1';
+        dup[i + j] = ' ';
     dup[i + size] = '\0';
     return (dup);
 }
@@ -388,6 +388,88 @@ int line_Valide(char *line)
 	return (1);
 }
 
+static bool is_valid_neighbor(char cell, char pos_pl)
+{
+	const int empty = 0;
+	const int wall = 1;
+
+	if (cell == '\0' || cell == ' ')
+		return (false);
+	if (cell == pos_pl)
+		return (true);
+	if (cell < '0' || cell > '9')
+		return (false);
+	return ((cell - '0' == empty) || (cell - '0' == wall));
+}
+
+static bool check_map(int i, int j, char **map, char pos_pl)
+{
+	if (!map[i + 1] || i == 0 || !map[i - 1])
+		return (false);
+	if (j == 0 || map[i][j + 1] == '\0')
+		return (false);
+	if (!is_valid_neighbor(map[i + 1][j], pos_pl))
+		return (false);
+	if (!is_valid_neighbor(map[i - 1][j], pos_pl))
+		return (false);
+	if (!is_valid_neighbor(map[i][j + 1], pos_pl))
+		return (false);
+	if (!is_valid_neighbor(map[i][j - 1], pos_pl))
+		return (false);
+	return (true);
+}
+
+int	check_last_zero(char **map, char pos_pl)
+{
+	int			i;
+	int			j;
+	char		cell;
+	const int	empty = 0;
+
+	if (!map)
+		return (0);
+	i = 0;
+	while (map[i])
+	{
+		j = 0;
+		while (map[i][j])
+		{
+			cell = map[i][j];
+			if (cell == pos_pl || (cell >= '0' && cell <= '9'
+				&& cell - '0' == empty))
+			{
+				if (!check_map(i, j, map, pos_pl))
+					return (0);
+			}
+			j++;
+		}
+		i++;
+	}
+	return (1);
+}
+char find_player_char(char **map)
+{
+	int i;
+	int j;
+
+	if (!map)
+		return ('\0');
+	i = 0;
+	while (map[i])
+	{
+		j = 0;
+		while (map[i][j])
+		{
+			if (map[i][j] == 'N' || map[i][j] == 'S'
+				|| map[i][j] == 'E' || map[i][j] == 'W')
+				return (map[i][j]);
+			j++;
+		}
+		i++;
+	}
+	return ('\0');
+}
+
 
 int	check_map_walls(char **map, int height)
 {
@@ -414,12 +496,44 @@ int	check_map_walls(char **map, int height)
 	return (1);
 }
 
-int parse_map(char **map_cursor)
+
+int check_reachble(char **arr, t_config *config)
+{
+	int i;
+	int j;
+	int flag;
+
+	i = 0;
+	flag = 0;
+	while (arr[i])
+	{
+		j = 0;
+		while (arr[i][j])
+		{
+			if (!(arr[i][j] == ' ') && !(arr[i][j] == '0') && !(arr[i][j] == '1') &&
+				!(arr[i][j] == 'N') && !(arr[i][j] == 'W') && !(arr[i][j] == 'S')  &&
+				!(arr[i][j] == 'E'))
+				return (-1);
+			if (arr[i][j] == 'N' || arr[i][j] == 'W' || arr[i][j] == 'S' ||
+				arr[i][j] == 'E')
+				{
+					config->player_x = i;
+					config->player_y = j;
+					config->player_dir = arr[i][j];
+					flag++;
+				}
+			j++;
+		}
+		i++;
+	}
+	if (flag > 1)
+		return (-1);
+	return (0);
+}
+
+int parse_map(char **map_cursor, t_config *config)
 {
 	char **arr;
-	int max_len;
-	char **map;
-	int height;
 
 	skip_lines(map_cursor);
 	if (find_consecutive_newlines(*map_cursor) == 1)
@@ -427,17 +541,29 @@ int parse_map(char **map_cursor)
 	arr = ft_split(*map_cursor, '\n');
 	if (!arr)
 		return (-1);
-	height = 0;
-	while (arr[height])
-		height++;
-	max_len = find_tall_line(arr);
-	if	(!check_map_walls(arr, height))
+	while (arr[config->map_h])
+		config->map_h++;
+	config->map_w = find_tall_line(arr);
+	if	(!check_map_walls(arr, config->map_h))
 		return (printf("walllllllllllllllllls\n"), -1);
-	map = resize_line(arr,max_len, height); //new map
-	free_array(arr);
-	for (int i = 0; map[i]; i++)
+	if	(check_reachble(arr, config) == -1)
+		return (printf("Error elements\n"), -1);
+	config->map = resize_line(arr,config->map_w, config->map_h);
+	if (!config->map)
 	{
-		printf("[%d] %s\n", i, map[i]);
+		free_array(arr);
+		return (printf("Error alloc map\n"), -1);
+	}
+	free_array(arr);
+	if (!check_last_zero(config->map, config->player_dir))
+	{
+		free_array(config->map);
+		config->map = NULL;
+		return (printf("Error map not closed\n"), -1);
+	}
+	for (int i = 0; config->map[i]; i++)
+	{
+		printf("[%d] %s\n", i, config->map[i]);
 	}
 	// printf("max : %d\n",max_len);
 	return (0);
@@ -480,7 +606,7 @@ int	parse_file(char *filename, t_config *config)
 	if (check_textures_and_color(&map_cursor, config) == -1)
 		return (put_error("Invalid textures/colors"), free(all_map), 1);
 
-	if (parse_map(&map_cursor) == -1)
+	if (parse_map(&map_cursor, config) == -1)
 		return (put_error("Invalid textures/colors"), free(all_map), 1);
 
 	// TODO: implement map parsing next
