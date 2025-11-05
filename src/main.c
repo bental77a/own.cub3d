@@ -1,99 +1,3 @@
-// /* ************************************************************************** */
-// /*                                                                            */
-// /*                                                        :::      ::::::::   */
-// /*   main.c                                             :+:      :+:    :+:   */
-// /*                                                    +:+ +:+         +:+     */
-// /*   By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+        */
-// /*                                                +#+#+#+#+#+   +#+           */
-// /*   Created: 2025/10/01 14:12:15 by mohben-t          #+#    #+#             */
-// /*   Updated: 2025/11/03 17:50:12 by mohben-t         ###   ########.fr       */
-// /*                                                                            */
-// /* ************************************************************************** */
-
-
-// #include "../includes/cub.h"
-
-
-
-
-// void	print_config(t_config *config)
-// {
-//     int	i;
-
-//     printf("\n=== PARSING RESULTS ===\n");
-//     printf("NO texture: %s\n", config->no_tex ? config->no_tex : "NULL");
-//     printf("SO texture: %s\n", config->so_tex ? config->so_tex : "NULL");
-//     printf("WE texture: %s\n", config->we_tex ? config->we_tex : "NULL");
-//     printf("EA texture: %s\n", config->ea_tex ? config->ea_tex : "NULL");
-    
-//     printf("Floor RGB: %d,%d,%d\n", config->floor[0], config->floor[1], config->floor[2]);
-//     printf("Ceiling RGB: %d,%d,%d\n", config->ceil[0], config->ceil[1], config->ceil[2]);
-    
-//     printf("Map size: %d x %d\n", config->map_w, config->map_h);
-//     printf("Player position: (%d, %d) facing %c\n", 
-//         config->player_x, config->player_y, config->player_dir ? config->player_dir : '?');
-    
-//     printf("\nMap:\n");
-//     if (config->map)
-//     {
-//         i = 0;
-//         while (i < config->map_h)
-//         {
-//             printf("[%d] %s\n", i, config->map[i]);
-//             i++;
-//         }
-//     }
-//     printf("======================\n\n");
-// }
-
-// static void	init_config(t_config *config)
-// {
-//     config->no_tex = NULL;
-//     config->so_tex = NULL;
-//     config->we_tex = NULL;
-//     config->ea_tex = NULL;
-//     config->floor[0] = -1;
-//     config->floor[1] = -1;
-//     config->floor[2] = -1;
-//     config->ceil[0] = -1;
-//     config->ceil[1] = -1;
-//     config->ceil[2] = -1;
-//     config->map = NULL;
-//     config->map_h = 0;
-//     config->map_w = 0;
-//     config->player_x = -1;
-//     config->player_y = -1;
-//     config->player_dir = '\0';
-// }
-
-
-// int main(int ac, char **av)
-// {
-//     t_game game;
-    
-//     if (ac != 2)
-//         return (ft_putendl_fd(USAGE_ERR, 2), 1);
-//     if (has_cub_extension(av[1]))
-//         return (1);
-//     init_config(&game.config);
-//     if (parse_file(av[1], &game.config))
-//         return (1);
-//     validate_map(&game.config);
-//     print_config(&game.config);
-//     init_game(&game);
-//     init_player(&game.player, &game.config);
-
-//     draw_background(&game);
-
-//     raycast(&game, &game.player);
-//     mlx_key_hook(game.win, handle_keypress, &game);
-//     mlx_put_image_to_window(game.mlx, game.win, game.img, 0, 0);
-
-//     mlx_loop(game.mlx);
-//     return (0);
-// }
-
-
 #include "../includes/cub.h"
 
 int	has_cub_extension(char *path)
@@ -464,34 +368,46 @@ void free_array(char **arr)
     free(arr);
 }
 
-int	check_map_walls(char **map, int width, int height)
+int	border_valid(char c)
 {
-	int	i;
-	int	j;
+	return (c == '1' || c == ' ');
+}
 
+int line_Valide(char *line)
+{
+	int i;
+
+	if (!line || !*line)
+		return (0);
+
+	for (i = 0; line[i] != '\0'; i++)
+	{
+		if (line[i] != '1' && line[i] != ' ')
+			return (0);
+	}
+	return (1);
+}
+
+
+int	check_map_walls(char **map, int height)
+{
+	int		i;
+	size_t	len;
+
+	if (!map || height <= 0)
+		return (0);
+	if (!line_Valide(map[0])
+		|| !line_Valide(map[height - 1]))
+		return (0);
 	i = 0;
 	while (i < height)
 	{
-		if (!map[i] || ft_strlen(map[i]) != (size_t)width)
-		{
+		if (!map[i])
 			return (0);
-		}
-		i++;
-	}
-	j = 0;
-	while (j < width)
-	{
-		if (map[0][j] != '1' || map[height - 1][j] != '1')
-		{
-			printf("j : %d\n",j);	
+		len = ft_strlen(map[i]);
+		if (len == 0)
 			return (0);
-		} 
-		j++;
-	}
-	i = 0;
-	while (i < height)
-	{
-		if (map[i][0] != '1' || map[i][width - 1] != '1')
+		if (!border_valid(map[i][0]) || !border_valid(map[i][len - 1]))
 			return (0);
 		i++;
 	}
@@ -515,14 +431,14 @@ int parse_map(char **map_cursor)
 	while (arr[height])
 		height++;
 	max_len = find_tall_line(arr);
+	if	(!check_map_walls(arr, height))
+		return (printf("walllllllllllllllllls\n"), -1);
 	map = resize_line(arr,max_len, height); //new map
 	free_array(arr);
 	for (int i = 0; map[i]; i++)
 	{
 		printf("[%d] %s\n", i, map[i]);
 	}
-	if	(!check_map_walls(map,max_len,height))
-		return (printf("walllllllllllllllllls\n"), -1);
 	// printf("max : %d\n",max_len);
 	return (0);
 }
