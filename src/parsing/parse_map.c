@@ -6,156 +6,115 @@
 /*   By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/01 14:13:00 by mohben-t          #+#    #+#             */
-/*   Updated: 2025/10/21 11:18:44 by mohben-t         ###   ########.fr       */
+/*   Updated: 2025/11/06 17:15:08 by mohben-t         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/cub.h"
 
-static void	find_player(t_config *config)
+static int	handle_texture_entry(char *line, t_config *config, int *count)
 {
-    int	y;
-    int	x;
-    int	player_count;
+	char	*cursor;
 
-    player_count = 0;
-    y = 0;
-    while (y < config->map_h)
-    {
-        x = 0;
-        while (config->map[y] && config->map[y][x])
-        {
-            if (is_player_char(config->map[y][x]))
-            {
-                config->player_x = x;
-                config->player_y = y;
-                config->player_dir = config->map[y][x];
-                player_count++;
-            }
-            x++;
-        }
-        y++;
-    }
-    if (player_count == 0)
-        print_error(ERR_NO_PLAYER);
-    if (player_count > 1)
-        print_error(ERR_MULTIPLAYER);
+	cursor = line;
+	skip_space(&cursor);
+	if (*cursor == '\0' || *cursor == '\n')
+		return (0);
+	if (handle_identifier_line(&cursor, config) == -1)
+		return (-1);
+	(*count)++;
+	return (0);
 }
 
-static int	is_valid_map_char(char c)
+int	check_textures_and_color(char **map_str, t_config *config)
 {
-    return (c == '0' || c == '1' || c == ' ' || is_player_char(c));
-}
+	char	*line;
+	int		count;
 
-static void	validate_map_borders(t_config *config)
-{
-    int	y;
-    int	x;
-
-    y = 0;
-    while (y < config->map_h)
-    {
-        if (y == 0 || y == config->map_h - 1)
-        {
-            x = 0;
-            while (config->map[y][x])
-            {
-                if (config->map[y][x] != '1' && config->map[y][x] != ' ')
-                    print_error(ERR_INVALID_MAP);
-                x++;
-            }
-        }
-        y++;
-    }
-    
-}
-int	first_non_space(char *s)
-{
-    int	i;
-
-    if (!s)
-        return (-1);
-    i = 0;
-    while (s[i] && (s[i] == ' ' || s[i] == '\t'))
-        i++;
-    if (s[i])
-        return (i);
-    return (-1);
-}
-int	last_non_space(char *s)
-{
-    int	i;
-
-    if (!s)
-        return (-1);
-    i = ft_strlen(s) - 1;
-    while (i >= 0 && (s[i] == ' ' || s[i] == '\t'))
-        i--;
-    if (i >= 0) 
-        return (i);
-    return (-1);
-}
-
-int	find_consecutive_newlines(const char *str)
-{
-	int	i;
-
-	i = 0;
-	while (str[i])
+	count = 0;
+	while ((line = get_next_line_from_string(map_str)))
 	{
-		if (str[i] == '\n' && str[i + 1] == '\n')
-			return (1);
-		str++;
+		if (count == 6)
+		{
+			free(line);
+			break ;
+		}
+		if (handle_texture_entry(line, config, &count) == -1)
+		{
+			free(line);
+			return (-1);
+		}
+		free(line);
+	}
+	if (!config->no_tex || !config->so_tex || !config->we_tex
+		|| !config->ea_tex)
+		return (-1);
+	return (0);
+}
+
+static int	process_cell(char cell, int row, int col, t_config *config)
+{
+	if (!is_valid_map_char(cell))
+		return (-1);
+	if (cell == 'N' || cell == 'S' || cell == 'E' || cell == 'W')
+	{
+		if (config->player_dir != '\0')
+			return (-1);
+		config->player_x = row;
+		config->player_y = col;
+		config->player_dir = cell;
 	}
 	return (0);
 }
 
-void	validate_map(t_config *config)
+int	check_reachble(char **arr, t_config *config)
 {
-    int	y;
-    int	x;
-    int left;
-    int right;
+	int	row;
+	int	col;
 
-    if (!config->map || config->map_h == 0)
-        print_error(ERR_INVALID_MAP);
-    
-    y = 0;
-    while (y < config->map_h)
-    {
-        left = first_non_space(config->map[y]);
-        right = last_non_space(config->map[y]);
-        if (left == -1 || right == -1)
-            print_error(ERR_INVALID_MAP);
-        if (config->map[y][left] != '1' || config->map[y][right] != '1')
-            print_error(ERR_INVALID_MAP);
-        y++;
-    }
-    y = 0;
-    while (y < config->map_h)
-    {
-        x = 0;
-        while (config->map[y][x])
-        {
-            if (!is_valid_map_char(config->map[y][x]))
-                print_error(ERR_INVALID_MAP);
-            x++;
-        }
-        y++;
-    }
-    y = 0;
-    while (y < config->map_h)
-    {
-        x = 0;
-        while (config->map[y][x])
-        {
-            if (config->map[y][x] == ' ')
-                config->map[y][x] = '1';
-            x++;
-        }
-        y++;
-    }
-    find_player(config);
-    validate_map_borders(config);
+	if (!arr || !config)
+		return (-1);
+	config->player_x = -1;
+	config->player_y = -1;
+	config->player_dir = '\0';
+	row = 0;
+	while (arr[row])
+	{
+		col = 0;
+		while (arr[row][col])
+		{
+			if (process_cell(arr[row][col], row, col, config) == -1)
+				return (-1);
+			col++;
+		}
+		row++;
+	}
+	if (config->player_dir == '\0')
+		return (-1);
+	return (0);
 }
 
+char	*get_next_line_from_string(char **map_str)
+{
+	char	*line;
+	char	*newline;
+	int		len;
+
+	if (!map_str || !*map_str || **map_str == '\0')
+		return (NULL);
+	newline = ft_strchr(*map_str, '\n');
+	if (newline)
+		len = newline - *map_str + 1;
+	else
+		len = ft_strlen(*map_str);
+	line = malloc(len + 1);
+	if (!line)
+		return (NULL);
+	ft_strncpy(line, *map_str, len);
+	line[len] = '\0';
+	if (newline)
+		*map_str = newline + 1;
+	else
+		*map_str += len;
+	return (line);
+}

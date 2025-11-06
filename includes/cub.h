@@ -6,7 +6,7 @@
 /*   By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/01 14:13:36 by mohben-t          #+#    #+#             */
-/*   Updated: 2025/10/19 08:10:43 by mohben-t         ###   ########.fr       */
+/*   Updated: 2025/11/06 17:17:44 by mohben-t         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,16 +106,43 @@ typedef struct s_game
     t_player player;
 }   t_game;
 
+
+
+void	measure_map(char **arr, t_config *config);
+int	load_map_content(int fd, char **all_map);
+int	append_line(char **buffer, char *line);
+int	is_valid_map_char(char c);
+void	skip_space(char **str);
+int	get_len(char *str);
+char	*get_path_textures(char **str);
+void	free_textures(t_config *config);
+int	get_colors(char **str, t_config *config);
+int	get_color(char **str, int color[3]);
+int	parse_component(char **str, int *value);
+int	get_textures(char **str, t_config *config);
+int	handle_identifier_line(char **cursor, t_config *config);
+int find_tall_line(char **str);
+int	find_consecutive_newlines(const char *str);
+char *skip_lines(char **str);
+char	*ft_strncpy(char *dest, char *src, unsigned int n);
+bool is_valid_neighbor(char cell, char pos_pl);
+bool check_map(int i, int j, char **map, char pos_pl);
+int	check_last_zero(char **map, char pos_pl);
+char find_player_char(char **map);
+int	check_map_walls(char **map, int height);
+char	*get_next_line_from_string(char **map_str);
+int check_reachble(char **arr, t_config *config);
+int	check_textures_and_color(char **map_str, t_config *config);
+int line_valide(char *line);
+int	border_valid(char c);
+void free_array(char **arr);
+char	**resize_line(char **arr,int size, int height);
+char *ft_strndup(char *s1, int size);
 int		has_cub_extension(char *path);
-int		is_empty_line(char *line);
 int		is_player_char(char c);
 int		parse_file(char *filename, t_config *config);
-void	parse_rgb(int color[3], char *s);
-void	parse_identifier(t_config *cfg, char *line);
-int		is_map_line(char *line);
-char	**add_line_to_array(char **array, char *line);
 void	print_error(int code);
-void	validate_map(t_config *config);
+int parse_map(char **map_cursor, t_config *config);
 void	put_error(char *msg);
 int	find_consecutive_newlines(const char *str);
 

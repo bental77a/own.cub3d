@@ -6,7 +6,7 @@
 #    By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/01 14:16:44 by mohben-t          #+#    #+#              #
-#    Updated: 2025/11/03 17:58:42 by mohben-t         ###   ########.fr        #
+#    Updated: 2025/11/06 17:18:17 by mohben-t         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,7 +23,9 @@ libft 	:= libft/ft_atoi.c libft/ft_putendl_fd.c libft/ft_strcmp.c libft/ft_strrc
 		   libft/ft_split.c libft/ft_strncmp.c libft/ft_strtrim.c \
 		   libft/ft_splitlen.c libft/ft_free_split.c
 
-srcode  :=  src/parsing/print_error.c
+srcode  :=  src/parsing/print_error.c  src/parsing/parsse_color.c src/parsing/parse_utils.c \
+			src/parsing/parse_utils_1.c src/parsing/parse_map.c src/parsing/parse_identifiers.c \
+			src/parsing/parse_file.c  src/parsing/parse_utils_2.c
 
 srcgame := src/game/game_utils.c src/game/init_game.c src/game/raycaster.c src/game/hooks.c src/game/playerr.c 
 

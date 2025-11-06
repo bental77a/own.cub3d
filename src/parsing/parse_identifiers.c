@@ -6,69 +6,99 @@
 /*   By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/01 14:12:53 by mohben-t          #+#    #+#             */
-/*   Updated: 2025/10/21 11:24:21 by mohben-t         ###   ########.fr       */
+/*   Updated: 2025/11/06 11:37:24 by mohben-t         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/cub.h"
 
-void	parse_rgb(int color[3], char *s)
+char	*ft_strncpy(char *dest, char *src, unsigned int n)
 {
-    char	**split;
-    int		i;
+	unsigned int	i;
 
-    split = ft_split(s, ',');
-    if (!split || ft_splitlen(split) != 3)
-        print_error(ERR_INVALID_RGB);
-    i = 0;
-    while (i < 3)
-    {
-        color[i] = ft_atoi(split[i]);
-        if (color[i] < 0 || color[i] > 255)
-            print_error(ERR_INVALID_RGB);
-        i++;
-    }
-    ft_free_split(split);
+	i = 0;
+	while (*(src + i) != '\0' && i < n)
+	{
+		*(dest + i) = *(src + i);
+		i++;
+	}
+	while (i < n)
+	{
+		*(dest + i) = '\0';
+		i++;
+	}
+	return (dest);
 }
 
-void	parse_identifier(t_config *cfg, char *line)
+char	*skip_lines(char **str)
 {
-    if (ft_strncmp(line, "NO ", 3) == 0)
-        cfg->no_tex = ft_strdup(line + 3);
-    else if (ft_strncmp(line, "SO ", 3) == 0)
-        cfg->so_tex = ft_strdup(line + 3);
-    else if (ft_strncmp(line, "WE ", 3) == 0)
-        cfg->we_tex = ft_strdup(line + 3);
-    else if (ft_strncmp(line, "EA ", 3) == 0)
-        cfg->ea_tex = ft_strdup(line + 3);
-    else if (line[0] == 'F' && line[1] == ' ')
-        parse_rgb(cfg->floor, line + 2);
-    else if (line[0] == 'C' && line[1] == ' ')
-        parse_rgb(cfg->ceil, line + 2);
-    else if (is_map_line(line))
-    {
-        
-        
-        cfg->map = add_line_to_array(cfg->map, line);
-        cfg->map_h++;
-        if ((int)ft_strlen(line) > cfg->map_w)
-            cfg->map_w = ft_strlen(line);
-    }
-    else if (line[0] != '\0')
-        print_error(ERR_UNKNOWN);
+	while (**str && **str == '\n')
+		(*str)++;
+	return (*str);
 }
 
-int	is_map_line(char *line)
+int	find_consecutive_newlines(const char *str)
 {
-    int	i;
+	int	i;
 
-    i = 0;
-    while (line[i])
-    {
-        if (line[i] != ' ' && line[i] != '0' && line[i] != '1' &&
-            !is_player_char(line[i]))
-            return (0);
-        i++;
-    }
-    return (1);
+	i = 0;
+	while (str[i])
+	{
+		if (str[i] == '\n' && str[i + 1] == '\n')
+		{
+			while (str[i] && str[i] == '\n')
+				i++;
+			if (str[i] == '1' || str[i] == '0' || str[i] == ' ')
+				return (1);
+			return (0);
+		}
+		str++;
+	}
+	return (0);
+}
+
+int	find_tall_line(char **str)
+{
+	int	i;
+	int	len;
+	int	max_len;
+
+	i = 0;
+	max_len = 0;
+	while (str[i])
+	{
+		len = ft_strlen(str[i]);
+		if (len > max_len)
+			max_len = len;
+		i++;
+	}
+	return (max_len);
+}
+
+int	get_textures(char **str, t_config *config)
+{
+	skip_space(str);
+	if (!ft_strncmp(*str, "NO", 2))
+	{
+		*str += 2;
+		config->no_tex = get_path_textures(str);
+	}
+	else if (!ft_strncmp(*str, "SO", 2))
+	{
+		*str += 2;
+		config->so_tex = get_path_textures(str);
+	}
+	else if (!ft_strncmp(*str, "EA", 2))
+	{
+		*str += 2;
+		config->ea_tex = get_path_textures(str);
+	}
+	else if (!ft_strncmp(*str, "WE", 2))
+	{
+		*str += 2;
+		config->we_tex = get_path_textures(str);
+	}
+	else
+		return (-1);
+	return (0);
 }

@@ -10,42 +10,40 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "../includes/cub.h"
+#include "../includes/cub.h"
 
-
-
-void init_player(t_player *player, t_config *config)
+void	init_player(t_player *player, t_config *config)
 {
-    player->x = config->player_x + 0.5;
-    player->y = config->player_y + 0.5;
-    if (config->player_dir == 'N')
-    {
-        player->dir_x = 0;
-        player->dir_y = -1;
-        player->plane_x = 0.66;
-        player->plane_y = 0;
-    }
-    else if (config->player_dir == 'S')
-    {
-        player->dir_x = 0;
-        player->dir_y = 1;
-        player->plane_x = -0.66;
-        player->plane_y = 0;
-    }
-    else if (config->player_dir == 'E')
-    {
-        player->dir_x = 1;
-        player->dir_y = 0;
-        player->plane_x = 0;
-        player->plane_y = 0.66;
-    }
-    else if (config->player_dir == 'W')
-    {
-        player->dir_x = -1;
-        player->dir_y = 0;
-        player->plane_x = 0;
-        player->plane_y = -0.66;
-    }
+	player->x = config->player_x + 0.5;
+	player->y = config->player_y + 0.5;
+	if (config->player_dir == 'N')
+	{
+		player->dir_x = 0;
+		player->dir_y = -1;
+		player->plane_x = 0.66;
+		player->plane_y = 0;
+	}
+	else if (config->player_dir == 'S')
+	{
+		player->dir_x = 0;
+		player->dir_y = 1;
+		player->plane_x = -0.66;
+		player->plane_y = 0;
+	}
+	else if (config->player_dir == 'E')
+	{
+		player->dir_x = 1;
+		player->dir_y = 0;
+		player->plane_x = 0;
+		player->plane_y = 0.66;
+	}
+	else if (config->player_dir == 'W')
+	{
+		player->dir_x = -1;
+		player->dir_y = 0;
+		player->plane_x = 0;
+		player->plane_y = -0.66;
+	}
 }
 
 // int key_press(int keycode, t_player *player)
@@ -62,7 +60,7 @@ void init_player(t_player *player, t_config *config)
 //         player->left_rotate = true;
 //     if(keycode == RIGHT)
 //         player->right_rotate = true;
-//     return 0;
+//     return (0);
 // }
 
 // int key_release(int keycode, t_player *player)
@@ -79,7 +77,7 @@ void init_player(t_player *player, t_config *config)
 //         player->left_rotate = false;
 //     if(keycode == RIGHT)
 //         player->right_rotate = false;
-//     return 0;
+//     return (0);
 // }
 
 // void move_player(t_player *player)

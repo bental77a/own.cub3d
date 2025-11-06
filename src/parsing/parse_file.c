@@ -6,82 +6,92 @@
 /*   By: mohben-t <mohben-t@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/01 14:12:38 by mohben-t          #+#    #+#             */
-/*   Updated: 2025/10/21 11:30:15 by mohben-t         ###   ########.fr       */
+/*   Updated: 2025/11/06 17:16:25 by mohben-t         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/cub.h"
 
-int	has_cub_extension(char *path)
+int	normalize_map(char **arr, t_config *config)
 {
-    char	*extension;
-
-    extension = ft_strrchr(path, '.');
-    if (extension == NULL)
-        return (ft_putendl_fd(INVALID_PATH, 2), 1);
-    if (ft_strcmp(extension, ".cub") == 0)
-        return (0);
-    else
-        return (ft_putendl_fd(INVALID_EXT, 2), 1);
+	config->map = resize_line(arr, config->map_w, config->map_h);
+	if (!config->map)
+	{
+		free_array(arr);
+		return (printf("Error alloc map\n"), -1);
+	}
+	free_array(arr);
+	if (!check_last_zero(config->map, config->player_dir))
+	{
+		free_array(config->map);
+		config->map = NULL;
+		return (printf("Error map not closed\n"), -1);
+	}
+	return (0);
 }
 
-int	is_empty_line(char *line)
+int	validate_map_array(char **arr, t_config *config)
 {
-    int	i;
-
-    i = 0;
-    while (line[i] && (line[i] == ' ' || line[i] == '\t'))
-        i++;
-    return (line[i] == '\n' || line[i] == '\0');
+	measure_map(arr, config);
+	if (!check_map_walls(arr, config->map_h))
+	{
+		free_array(arr);
+		return (printf("walllllllllllllllllls\n"), -1);
+	}
+	if (check_reachble(arr, config) == -1)
+	{
+		free_array(arr);
+		return (printf("Error elements\n"), -1);
+	}
+	return (normalize_map(arr, config));
 }
 
-int	is_player_char(char c)
+int	parse_map(char **map_cursor, t_config *config)
 {
-    return (c == 'N' || c == 'S' || c == 'E' || c == 'W');
+	char	**arr;
+
+	skip_lines(map_cursor);
+	if (find_consecutive_newlines(*map_cursor) == 1)
+		return (printf("too lines"), -1);
+	arr = ft_split(*map_cursor, '\n');
+	if (!arr)
+		return (-1);
+	return (validate_map_array(arr, config));
 }
 
-static char	*trim_line(char *line)
+int	parse_content(char *content, t_config *config)
 {
-    char	*trimmed;
-    int		len;
+	char	*cursor;
 
-    if (!line)
-        return (NULL);
-    len = ft_strlen(line);
-    if (len > 0 && line[len - 1] == '\n')
-        line[len - 1] = '\0';
-    trimmed = ft_strtrim(line, " \t");
-    return (trimmed);
+	cursor = content;
+	if (check_textures_and_color(&cursor, config) == -1)
+		return (-1);
+	if (parse_map(&cursor, config) == -1)
+		return (-1);
+	return (0);
 }
 
 int	parse_file(char *filename, t_config *config)
 {
-    int		fd;
-    char	*line;
-    char	*trimmed;
+	int		fd;
+	char	*all_map;
 
-    fd = open(filename, O_RDONLY);
-    if (fd < 0)
-        return (print_error(ERR_INVALID_PATH), 1);
-    // Initialize config
-    config->map = NULL;
-    config->map_h = 0;
-    config->map_w = 0;
-    while ((line = get_next_line(fd)))
-    {
-        if (is_empty_line(line))
-        {
-            free(line);
-            continue;
-        }
-        trimmed = trim_line(line);
-        free(line);
-        if (!trimmed)
-            continue;
-        parse_identifier(config, trimmed);
-        free(trimmed);
-    }
-    close(fd);
-    return (0);
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return (print_error(ERR_INVALID_PATH), 1);
+	if (load_map_content(fd, &all_map) == -1)
+	{
+		close(fd);
+		put_error("Failed to read map");
+	}
+	close(fd);
+	if (!all_map)
+		return (1);
+	if (parse_content(all_map, config) == -1)
+	{
+		free(all_map);
+		put_error("Invalid textures/colors");
+	}
+	free(all_map);
+	return (0);
 }
-
